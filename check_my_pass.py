@@ -1,13 +1,25 @@
 """ Checks passwords security """
 
-import requests
 import hashlib
 import sys
 
+import requests
+
 
 def request_api_data(query_char):
-    URL = "https://api.pwnedpasswords.com/range/" + query_char
-    res = requests.get(URL)
+    """fetchs data about password security from api
+
+    Args:
+        query_char (str): first 5 letters of hashed password
+
+    Raises:
+        RuntimeError: when the response is not OK
+
+    Returns:
+        Response: the raw response from the api
+    """
+    url = "https://api.pwnedpasswords.com/range/" + query_char
+    res = requests.get(url, timeout=40)
 
     if res.status_code != 200:
         raise RuntimeError(f"Error fetching: {res.status_code}")
@@ -15,6 +27,15 @@ def request_api_data(query_char):
 
 
 def get_passwords_leak_count(hashes, hash_to_check):
+    """counts how many times the password has been pwned
+
+    Args:
+        hashes (str): the pwned passwords list fetched from api
+        hash_to_check (bool): the tail part version of entered password, from 5th char to the end
+
+    Returns:
+        int: the count of password leakage
+    """
     hashes = (line.split(":") for line in hashes.text.splitlines())
     for h, count in hashes:
         if str(h) == hash_to_check:
@@ -23,6 +44,14 @@ def get_passwords_leak_count(hashes, hash_to_check):
 
 
 def pwned_api_check(password):
+    """hashes password and fetchs data from api
+
+    Args:
+        password (str): password to check
+
+    Returns:
+        int: the count of password leakage
+    """
     sha1_password = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
     first5_chars, tail = sha1_password[:5], sha1_password[5:]
 
@@ -31,6 +60,14 @@ def pwned_api_check(password):
 
 
 def main(args):
+    """main logic executer
+
+    Args:
+        args (list[str]): a list of passswords to check
+
+    Returns:
+        str: a string of "Done!" showing that execution has ended
+    """
     for password in args:
         count = pwned_api_check(password)
         if count:
